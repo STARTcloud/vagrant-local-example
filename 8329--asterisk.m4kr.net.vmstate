@@ -1,5 +1,0 @@
----
-- name:
-  ec2_id:
-  state: not_created
-  public_ip:
