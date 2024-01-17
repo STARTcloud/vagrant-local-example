@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>DominoVagrant</title>
+
+    <link rel="stylesheet" href="./styles.css">
+</head>
+
+<body>
+
+    <!--Header content-->
+    <div class="header">
+        <p class="header-content-left">
+            <a href="https://{{ settings.hostname }}.{{ settings.domain }}/welcome.html" class="menu">Home</a>
+            <a href="https://github.com/DominoVagrant/demo-tasks/wiki" class="menu">Wiki</a>
+            <a href="https://github.com/DominoVagrant/demo-tasks" class="menu">Source</a>
+        </p>
+    </div>
+
+    <div class="column-4 project-2">
+        <h2 class="project-text">Notice</h2>
+        <p>Set your /etc/hosts to use hostnames!</p>
+        <p>{{ netoutput.stdout }} {{ settings.hostname }} {{ settings.hostname }}.{{ settings.domain }} {{ domino_url }} {{ vagrantrestinterface_url }} {{ downloads_url }} {% if traveler_url is defined %}{{ traveler_url }}{% endif %} {% if verse_url is defined %}{{ verse_url }}{% endif %} {% if leap_url is defined %}{{ leap_url }}{% endif %} {% if nomadweb_url is defined %}{{ nomadweb_url }}{% endif %}</p>
+    </div>
+
+
+    <!--Section 3: Projects-->
+    <h2 class="section-heading">Projects</h2>
+    {% if domino_url is defined %}
+    <a href="https://{{ domino_url }}">
+        <div class="column-4 project-3">
+            <h2 class="project-text">Domino</h2>
+        </div>
+    </a>
+    {% endif %}
+    {% if nomadweb_url is defined %}
+    <a href="https://{{ nomadweb_url }}">
+        <div class="column-4 project-4">
+            <h2 class="project-text">NomadWeb</h2>
+        </div>
+    </a>
+    {% endif %}
+    {% if vagrantrestinterface_url is defined %}
+    <a href="https://{{ vagrantrestinterface_url }}">
+        <div class="column-4 project-5">
+            <h2 class="project-text">RestAPI</h2>
+        </div>
+    </a>
+    {% endif %}
+    {% if downloads_url is defined %}
+    <a href="https://{{ downloads_url }}">
+        <div class="column-4 project-6">
+            <h2 class="project-text">Downloads</h2>
+        </div>
+    </a>
+    {% endif %}
+    {% if verse_url is defined %}
+    <a href="https://{{ verse_url }}">
+        <div class="column-4 project-7">
+            <h2 class="project-text">Verse</h2>
+        </div>
+    </a>
+    {% endif %}
+    {% if traveler_url is defined %}
+    <a href="https://{{ traveler_url }}">
+        <div class="column-4 project-7">
+            <h2 class="project-text">Verse</h2>
+        </div>
+    </a>
+    {% endif %}
+</body>
+
+</html>

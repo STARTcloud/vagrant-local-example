@@ -1,0 +1,84 @@
+---
+- name: Setting up NAT Networking
+  when: 'ansible_virtualization_type != "virtualbox"'
+  become: true
+  become_user: root
+  block:
+    - 
+      name: "Checking Connection to Source VM IP: {{ source_ip }}, user: {{ source_user }}, PASS: {{ source_pass }}"
+      expect:
+        command: ssh -o StrictHostKeyChecking=no {{ source_user }}@{{ source_ip }} 'echo "hello"'
+        responses:
+          '(?i)password: ': "{{ source_pass }}"
+
+    - 
+      name: Generate an OpenSSH keypair with the default values (4096 bits, rsa)
+      openssh_keypair:
+        path: /root/.ssh/id_rsa
+
+    - 
+      name: "Copying SSH key for easier RSYNC"
+      expect:
+        command: ssh-copy-id -i /root/.ssh/id_rsa.pub {{ source_user }}@{{ source_ip }}
+        responses:
+          '(?i)password: ': "{{ source_pass }}"
+
+    - 
+      name: "Checking Connection to Source VM IP: {{ source_ip }}, user: {{ source_user }}, PASS: {{ source_pass }}"
+      command: ssh -o StrictHostKeyChecking=no {{ source_user }}@{{ source_ip }} 'echo "hello"'
+
+    - 
+      name: "Checking if {{ remote_dom_data_dir }} exists on the source vm"
+      shell: 'ssh -o StrictHostKeyChecking=no {{ source_user }}@{{ source_ip }} " [ -d {{ remote_dom_data_dir }} ] "'
+
+    - 
+      name: "Checking if {{ remote_dom_bin_dir }} exists on the source vm"
+      shell: 'ssh -o StrictHostKeyChecking=no {{ source_user }}@{{ source_ip }} " [ -d {{ remote_dom_bin_dir }} ] "'
+
+    - 
+      name: "Checking if the user {{ remote_dom_user }} exists on the source vm"
+      shell: ssh -o StrictHostKeyChecking=no {{ source_user }}@{{ source_ip }} 'grep -c "^{{ remote_dom_user }}" /etc/passwd'
+
+    - 
+      name: "Checking if the group {{ remote_dom_group }} exists on the source vm"
+      shell: ssh -o StrictHostKeyChecking=no {{ source_user }}@{{ source_ip }} 'grep -c "^{{ remote_dom_group }}" /etc/group'
+
+    - 
+      name: "Creating the group {{ remote_dom_group }}"
+      group:
+        name: "{{ remote_dom_group }}"
+        state: present
+
+    - name: Creating user "{{ remote_dom_user }}" with admin access
+      user: 
+        name: "{{ remote_dom_user }}"
+        #password: "{{ upassword | password_hash('sha512') }}"
+        groups: "{{ remote_dom_group }}"
+
+    - 
+      name: "RSYNC data dir {{ unmounted_disks.stdout_lines }}"
+      when: rsync_data
+      shell: bash -c "time rsync --archive --chown\={{ remote_dom_user }}:{{ remote_dom_group }} {{ source_user }}@{{ source_ip }}:{{ remote_dom_data_dir }} {{ additional_disks_mounts[my_idx] }}"
+      loop: "{{ unmounted_disks.stdout_lines }}"
+      loop_control:
+        index_var: my_idx
+      register: rsync_time
+
+    - 
+      name: "Outputting RSYNC Time"
+      when: rsync_data
+      debug: 
+        var: rsync_time
+
+    - 
+      name: Sending an e-mail using Legacy SSL to the remote machine
+      when: rsync_data
+      mail:
+        host: 199.103.3.42
+        port: 25
+        secure: try
+        to: Support <Firewall_alerts@prominic.net>
+        subject: System {{ ansible_hostname }} has been successfully provisioned.
+        body: "The Data Directory has been RSYNC'd in {{ rsync_time }}."
+        username: Firewall_alerts@prominic.net
+        password: G6L9567HcfDs

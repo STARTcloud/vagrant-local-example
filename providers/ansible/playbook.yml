@@ -1,0 +1,13 @@
+-
+  become: true
+  gather_facts: true
+  hosts: localhost
+  roles:
+    - role: startcloud_aws_ec2_install
+      tags: install
+    - role: startcloud_aws_ec2_boot
+      tags: boot
+    - role: startcloud_aws_ec2_halt
+      tags: halt
+    - role: startcloud_aws_ec2_destroy
+      tags: destroy

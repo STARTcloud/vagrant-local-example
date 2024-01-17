@@ -1,0 +1,107 @@
+/* General website style rules */
+body {
+    font-family: "Helvetica", Sans-Serif;
+    background-color: darkgray;
+}
+a {
+    color: #112d4e;
+}
+/* Header Title */
+.header {
+    text-align: center;
+    font-size: 20px;
+    background-color: #000000;
+}
+.header-content-left {
+    font-size: 25px;
+    padding-left: 40px;
+    float: left;
+    word-spacing: 20px;
+}
+.header-content-right {
+    padding-right: 40px;
+    float: right;
+}
+/* Section 3: Projects */
+.section-heading {
+    text-align: center;
+    color: #102C4E;
+    margin-top: 5vh;
+    margin-bottom: 2vh;
+    font-size: 35px;
+}
+/* Sizing for Project Containers */
+.column-4 {
+    float: left;
+    width: 100vw;
+    padding: 10px;
+    margin: 20px;
+    height: 20vh;
+}
+/* Color and Images for Project Containers */
+.project-2 {
+    background-color: #209BFF;
+}
+.project-3 {
+    background-color: #209BFF;
+}
+.project-4 {
+    background-color: #209BFF;
+}
+.project-5 {
+    background-color: #209BFF;
+}
+.project-6 {
+    background-color: #209BFF;
+}
+.project-7 {
+    background-color: #209BFF;
+}
+.project-text {
+    text-align: center;
+    font-size: 50px;
+}
+/* Hover classes for individual project boxes */
+.project-2:hover {
+    background-color: #FEDE00;
+}
+.project-3:hover {
+    background-color: #FEDE00;
+}
+.project-4:hover {
+    background-color: #FEDE00;
+}
+.project-5:hover {
+    background-color: #FEDE00;
+}
+.project-6:hover {
+    background-color: #FEDE00;
+}
+.project-7:hover {
+    background-color: #FEDE00;
+}
+/* Add space between sections */
+.section-break {
+    margin: 50px;
+    height: 500px;
+}
+.footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 90px;
+}
+a.menu:hover {
+    Background-color: yellow;
+    font-size: 20px;
+}
+.icon-style {
+    height: 40px;
+    margin-left: 20px;
+    margin-top: 5px;
+}
+.icon-style:hover {
+    background-color: yellow;
+    padding: 5px;
+}

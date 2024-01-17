@@ -1,0 +1,96 @@
+---
+hosts:
+  -
+    settings:
+      server_id: '8329'
+      hostname: asterisk
+      domain: m4kr.net
+
+      os_type: 'linux'
+      box: 'STARTcloud/debian12-server'
+      provider-type: aws
+      brand: ami
+
+      user: startcloud
+      user_pass: 'STARTcloud24@!'
+      private_key_path: ./core/ssh_keys/id_rsa
+
+      debug: false
+
+      aws:
+        image: ami-0aef26cd5fd3b329d
+        region: us-east-2
+        instance_type: t3.micro
+        access_key: "REDACTED"
+        secret_key: "REDACTED"
+        sec_group: "default"
+        firmware_type: UEFI
+
+      twilio:
+        region: latin-america
+        access_key: "REDACTED"
+        secret_key: "REDACTED"
+
+      o365:
+        organization: Prominic
+        access_key: "REDACTED"
+        secret_key: "REDACTED"
+
+    disks:
+      todo: "in the future"
+    networks:
+      - todo: "in the future"
+
+    provisioning:
+      shell:
+        enabled: false
+        scripts:
+          - './scripts/aliases.sh'
+
+      ansible:
+        enabled: true
+        scripts:
+          - local:
+              - script: ansible/generate-playbook.yml
+                ansible_python_interpreter: /usr/bin/python3
+                compatibility_mode: 2.0
+                install_mode: pip
+                ssh_pipelining: true
+                verbose: false
+              - script: ansible/playbook.yml
+                ansible_python_interpreter: /usr/bin/python3
+                compatibility_mode: 2.0
+                install_mode: pip
+                ssh_pipelining: true
+                verbose: false
+
+      docker:
+        enabled: false
+        docker_compose:
+          - '/vagrant/installers/docker/docker-compose.yml'
+
+    folders:
+      - map: .
+        to: /vagrant
+        type: virtualbox
+        disabled: true
+        automount: true
+        description: "Disable VBoxSF"
+      - map: ./provisioners/ansible/
+        to: /vagrant/ansible/
+        type: rsync
+        args:
+          - '--verbose'
+          - '--archive'
+          - '--delete'
+          - '-z'
+          - '--copy-links'
+
+    vars:
+      debug_all: true
+
+    roles:
+      - name: startcloud_setup
+      - name: startcloud_disks
+      - name: startcloud_hostname
+      - name: startcloud_dependencies

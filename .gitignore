@@ -1,0 +1,4 @@
+.vagrant
+Hosts.yml
+.byebug_history
+*.vmstate

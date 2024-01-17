@@ -1,0 +1,21 @@
+---
+- 
+  name: "Writing current variables to /vagrant/ansible/running_var.out"
+  copy:
+    content: "{{ vars }}"
+    dest: "/vagrant/ansible/running_var.out"
+    force: no
+    mode: 'a+x'
+- 
+  name: "Setting timezone to {{ timezone }}"
+  timezone: 
+    name: "{{ timezone }}"
+-
+  name: "Creating Directories"
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0777
+  with_items:
+    - "{{ completed_dir }}"
+    - "/root/.ansible/tmp"

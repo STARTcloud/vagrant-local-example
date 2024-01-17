@@ -1,0 +1,4 @@
+
+{% for nameserver in networks[0].dns %}
+nameserver {{nameserver['nameserver']}}
+{% endfor %}

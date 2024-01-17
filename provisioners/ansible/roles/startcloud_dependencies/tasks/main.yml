@@ -1,0 +1,40 @@
+---
+- 
+  name: "Ensuring apt cache is updated"
+  apt:
+    cache_valid_time: 3600
+    update_cache: true
+  when: "ansible_os_family == 'Debian'"
+
+- 
+  name: "Upgrading all yum packages"
+  when: "ansible_os_family == 'RedHat'"
+  yum:
+    name: "*"
+    state: latest
+
+- 
+  name: "Upgrading all apt packages"
+  apt:
+    upgrade: dist
+    update_cache: yes
+  when: "ansible_os_family == 'Debian'"
+
+- 
+  name: "Adding Core Dependencies"
+  apt:
+    name:
+      - htop
+      - python3-pexpect
+      - python3-pymysql
+      - python3-pymongo
+    state: present 
+  when: "ansible_os_family == 'Debian'"
+
+- 
+  name: "Adding Additional Dependencies {{ packages }}"
+  apt:
+    name: "{{ packages }}"
+    state: present 
+  when: "ansible_os_family == 'Debian'"
+

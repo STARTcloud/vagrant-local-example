@@ -1,0 +1,42 @@
+---
+- 
+  name: Find /etc/netplan files 
+  ansible.builtin.find:
+    paths: /etc/netplan
+    patterns: '*_1.yaml'
+  register: find_matches
+
+- 
+  name: "Removing NAT'd Netplan Configurations"
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  with_items: "{{ find_matches.files }}"
+
+- 
+  name: Find External Adpater files 
+  ansible.builtin.find:
+    paths: /etc/netplan
+    patterns: '*_0.yaml'
+  register: find_ext_matches
+
+- 
+  name: "Adjusting permissions"
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    mode: 0400
+  with_items: "{{ find_ext_matches.files }}"
+
+- 
+  name: "Disabling Gateway to allow for Provisioning"
+  ansible.builtin.replace:
+    path: "{{ item.path }}"
+    regexp: '        - to: .*'
+    replace: '        - to: default'
+  with_items: "{{ find_ext_matches.files }}"
+
+
+- name: "Delay shutting down the remote node"
+  ansible.builtin.shell: "(cd /; sleep 10; shutdown now >/dev/null 2>&1 &)"
+  async: 10
+  poll: 0

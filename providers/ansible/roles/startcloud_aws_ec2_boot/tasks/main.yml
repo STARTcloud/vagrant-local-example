@@ -1,0 +1,74 @@
+---
+- 
+  name: "Gathering Instance Facts"
+  block:
+    - 
+      name: "Gathering VM State Data"
+      set_fact:
+        vm_state: "{{ lookup('file', '../../{{ settings.server_id }}--{{ settings.hostname }}.{{ settings.domain }}.vmstate') | from_yaml }}"
+    - 
+      name: "Get instance facts"
+      loop: "{{ vm_state }}"
+      amazon.aws.ec2_instance_info:
+        aws_access_key: "{{ settings.aws.access_key }}"
+        aws_secret_key: "{{ settings.aws.secret_key }}"
+        instance_ids:  "{{ ec2_ids | default([]) + [item['ec2_id']] }}"
+        region: "{{ settings.aws.region }}"
+      register: instance_data
+    -
+      name: "Saving Instance State Variables for Subsequent Tasks"
+      ansible.builtin.copy:
+        dest: '../../{{ settings.server_id }}--{{ settings.hostname }}.{{ settings.domain }}.aws.vmstate'
+        content: "{{ instance_data.results | to_nice_yaml }}"
+- 
+  name: "Starting the EC2 instances"
+  block:
+    - 
+      name: "Starting Instance"
+      loop: "{{ vm_state }}"
+      amazon.aws.ec2_instance:
+        aws_access_key: "{{ settings.aws.access_key }}"
+        aws_secret_key: "{{ settings.aws.secret_key }}"
+        instance_ids:  "{{ ec2_ids | default([]) + [item['ec2_id']] }}"
+        region: "{{ settings.aws.region }}"
+        state: started
+        wait: true
+- 
+  name: "Gathering Instance Facts"
+  block:
+    - 
+      name: "Gathering VM State Data"
+      set_fact:
+        vm_state: "{{ lookup('file', '../../{{ settings.server_id }}--{{ settings.hostname }}.{{ settings.domain }}.vmstate') | from_yaml }}"
+    - 
+      name: "Get instance facts"
+      loop: "{{ vm_state }}"
+      register: instance_data
+      amazon.aws.ec2_instance_info:
+        aws_access_key: "{{ settings.aws.access_key }}"
+        aws_secret_key: "{{ settings.aws.secret_key }}"
+        instance_ids:  "{{ ec2_ids | default([]) + [item['ec2_id']] }}"
+        region: "{{ settings.aws.region }}"
+    -
+      name: "Saving Instance State Variables for Subsequent Tasks"
+      ansible.builtin.copy:
+        dest: '../../{{ settings.server_id }}--{{ settings.hostname }}.{{ settings.domain }}.aws.vmstate'
+        content: "{{ instance_data.results | to_nice_yaml }}"
+-
+  name: "Telling Vagrant that the Machine is booted"
+  block:
+    - 
+      name: "Display all variables"
+      ansible.builtin.debug:
+        var: instance_data.results[0].instances
+    - 
+      name: "Telling Provisioner VM is running"
+      loop: "{{ instance_data.results[0].instances }}"
+      ansible.builtin.copy:
+        dest: "../../{{ settings.server_id }}--{{ settings.hostname }}.{{ settings.domain }}.vmstate"
+        content: |
+          -
+            name: {{ settings.server_id }}--{{ settings.hostname }}.{{ settings.domain }}
+            ec2_id: {{ item.instance_id }}
+            state: running
+            public_ip: {{ item.public_ip_address }}

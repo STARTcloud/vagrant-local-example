@@ -1,0 +1,123 @@
+---
+- 
+  name: Setting up Networking
+  when: 'ansible_virtualization_type == "virtualbox"'
+  become: true
+  become_user: root
+  block:
+    - 
+      name: "Get MAC address of bridged adapter"
+      become: true
+      when: networks[0] is defined
+      shell: /usr/sbin/ifconfig | grep -v "inet6\|127\|10.0.2" | grep -A 1 inet  | awk "{print \$2}" | tail -1
+      args:
+        executable: /bin/bash
+      register: macaddress
+
+    -
+      name: "Placing Netplan into Working directory"
+      become: true
+      when: networks[0] is defined
+      template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      loop:
+        - { src: 'interface.yaml.j2', dest: '/etc/netplan/public_adapter.yaml' }
+
+    -
+      name: "Setting Networking"
+      shell: "{{ item }}"
+      become: true
+      when: networks[0] is defined
+      with_items:
+        - "netplan apply"
+
+    - 
+      name: Pause for 3 seconds for IP to set
+      when: networks[0] is defined
+      pause:
+        seconds: 3
+
+    - 
+      name: "Grabbing External IP address"
+      become: true
+      when: networks[0] is defined
+      shell: /usr/sbin/ifconfig | grep -v "inet6\|127\|10.0.2" | awk "/inet/ {print \$2}"
+      args:
+        executable: /bin/bash
+      register: netoutput
+
+    - 
+      name: "Placing {{ netoutput.stdout }} in file /ipaddress.yml"
+      become: true
+      when: networks[0] is defined
+      copy:
+        content: "{{ netoutput.stdout }}"
+        dest: "/ipaddress.yml"
+
+    - 
+      name: "Placing 127.0.0.1 in file /ipaddress.yml as no IP was configured in Hosts.yml"
+      become: true
+      when: networks[0] is not defined
+      copy:
+        content: "127.0.0.1"
+        dest: "/ipaddress.yml"
+
+    - 
+      name: "Grabbing local address for scripts"
+      become: true
+      when: networks[0] is not defined
+      shell: cat /ipaddress.yml
+      args:
+        executable: /bin/bash
+      register: netoutput
+
+- 
+  name: Setting up Networking
+  when: 'ansible_virtualization_type != "virtualbox"'
+  become: true
+  become_user: root
+  block:
+    - 
+      name: Find /etc/netplan files 
+      find:
+        paths: /etc/netplan
+        patterns: '*_1.yaml'
+      register: find_matches
+
+    - 
+      name: "Disabling Gateway to allow for Provisioning"
+      replace:
+        path: "{{ item.path }}"
+        regexp: '        - to: .*'
+        replace: '        - to: default'
+      with_items: "{{ find_matches.files }}"
+
+    - 
+      name: Find /etc/netplan files 
+      find:
+        paths: /etc/netplan
+        patterns: '*_0.yaml'
+      register: find_primary_matches
+
+    - 
+      name: "Disabling Gateway to allow for Provisioning"
+      replace:
+        path: "{{ item.path }}"
+        regexp: '        - to: default.*'
+        replace: '        - to: 172.17.0.0/16'
+      with_items: "{{ find_primary_matches.files }}"
+
+    -
+      name: "Making Networking Changes Active"
+      shell: "{{ item }}"
+      become: true
+      when: networks[0] is defined
+      with_items:
+        - "netplan apply"
+
+#    - 
+#      name: "Setting /etc/resolv.conf"
+#      template:
+#        src: resolv.conf.j2
+#        dest: '/etc/resolv.conf'

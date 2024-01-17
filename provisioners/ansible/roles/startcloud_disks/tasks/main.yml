@@ -1,0 +1,67 @@
+---
+- name: Expanding Root Disk
+  block:
+    - 
+      name: "Extending the unecrypted Root Partition"
+      shell: "{{ item }}"
+      when: ansible_os_family == 'Debian'
+      become: true
+      ignore_errors: true
+      with_items:
+        - "growpart  /dev/vda 4"
+        - "resize2fs /dev/vda4"
+        - "growpart  /dev/nvme0n1 4"
+        - "resize2fs /dev/nvme0n1p4"
+  when: not vm_encrypted
+  become: true
+  become_user: root
+
+- 
+  name: "Creating extra partitions"
+  become: true
+  become_user: root
+  when: 
+    - disks.additional_disks[0] is defined
+    - disks.additional_disks[0] is not string
+#    - disks.additional_disks[0] is not mapping
+#    - disks.additional_disks[0] is iterable
+    - disks.additional_disks[0] | length > 0
+    - ansible_virtualization_type != "virtualbox"
+  block:
+    -
+      name: "Creating Mount Points"
+      become: true
+      file:
+        path: "{{ item }}"
+        state: directory
+      with_items: "{{ disks.additional_disks[0].mount }}"
+
+    - 
+      name: "Creating a {{ disks.additional_disks[0].filesystem }} filesystems on partitions"
+      filesystem:
+        fstype: "{{ disks.additional_disks[0].filesystem }}"
+        dev: "/dev/{{ disks.additional_disks[0].device }}"
+
+    - 
+      name: "Mounting Partitions"
+      mount:
+        path: "{{ disks.additional_disks[0].mount }}"
+        src: "/dev/{{ disks.additional_disks[0].device }}"
+        fstype: "{{ disks.additional_disks[0].filesystem }}"
+        state: mounted
+
+#- 
+#  name: "Extending the encrypted Root Partition"
+#  shell: "{{ item }}"
+#  when: ansible_os_family == 'Debian'
+#  become: true
+#  ignore_errors: true
+#  with_items:
+#    - "growpart  /dev/vda 3"
+#    - "growpart  /dev/vda 3"
+#    - "echo {{ root_unlock_key }} | sudo cryptsetup resize /dev/mapper/sda3_crypt"
+#    - "pvresize /dev/mapper/sda3_crypt"
+#    - "lvresize -l+100%FREE /dev/crypt/root"
+#    - "resize2fs /dev/mapper/crypt-root"
+
+## Bhyve uses VDA and currently Vbox uses SDA (virtio v sata) the ignore_errors flag allows us to auto expand on provisioning any time the underly disk is increased.

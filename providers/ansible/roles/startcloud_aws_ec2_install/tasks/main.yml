@@ -1,0 +1,44 @@
+---
+-
+  name: "Provisioning EC2 instances"
+  block:
+    -
+      name: "Provisioning EC2 Instance"
+      register: instance_data
+      amazon.aws.ec2_instance:
+        aws_access_key: "{{ settings.aws.access_key }}"
+        aws_secret_key: "{{ settings.aws.secret_key }}"
+        instance_type: "{{ settings.aws.instance_type }}"
+        name: "{{ settings.hostname }}.{{ settings.domain }}"
+        #group_id: "{{ result_sec_group.group_id }}"
+        image_id: "{{ settings.aws.image }}"
+        region: "{{ settings.aws.region }}"
+        state: started
+        wait: true
+        count: 1
+-
+  name: "Gathering Instance Facts"
+  block:
+    -
+      name: "Saving Instance State Variables for Subsequent Tasks"
+      ansible.builtin.copy:
+        dest: '../../{{ settings.server_id }}--{{ settings.hostname }}.{{ settings.domain }}.aws.vmstate'
+        content: "{{ instance_data.instances | to_nice_yaml }}"
+-
+  name: "Telling Vagrant that the Machine is Installed"
+  block:
+    #- 
+    #  name: "Display all variables"
+    #  ansible.builtin.debug:
+    #    var: settings
+    - 
+      name: "Telling Provisioner VM is installed"
+      loop: "{{ instance_data.instances }}"
+      ansible.builtin.copy:
+        dest: "../../{{ settings.server_id }}--{{ settings.hostname }}.{{ settings.domain }}.vmstate"
+        content: |
+          -
+            name: {{ settings.server_id }}--{{ settings.hostname }}.{{ settings.domain }}
+            ec2_id: {{ item.instance_id }}
+            state: installed
+            public_ip: 

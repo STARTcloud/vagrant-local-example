@@ -1,0 +1,59 @@
+---
+- 
+  name: "Display all variables"
+  ansible.builtin.debug:
+    var: settings
+- name: Facts
+  block:
+    - 
+      name: "Instance Information"
+      debug:
+        msg: "ID: {{ item.instance_id }} - State: {{ item.state.name }} - Public DNS: {{ item.public_dns_name }} - Public IPv4: {{ item.public_ip_address  }}"
+      loop: "{{ instance_data.instances }}"
+  - name: Instances ID
+    debug:
+      msg: "ID: {{ item.instance_id }} - State: {{ item.state.name }} - Public DNS: {{ item.public_dns_name }}"
+    loop: "{{ result.instances }}"
+  tags: always
+- name: Provisioning EC2 instances
+  block:
+  - name: Upload public key to AWS
+    ec2_key:
+      name: "security_key"
+      key_material: "{{ lookup('file', '{{ vagrant_user_private_key_path }}.pub') }}"
+      region: "{{ region }}"
+      aws_access_key: "{{ settings.aws.access_key }}"
+      aws_secret_key: "{{ settings.aws.secret_key }}"
+  - name: Create security group
+    ec2_group:
+      name: "{{ sec_group }}"
+      description: "Sec group for app {{ id }}"
+      # vpc_id: 12345
+      region: "{{ region }}"
+      aws_access_key: "{{ settings.aws.access_key }}"
+      aws_secret_key: "{{ settings.aws.secret_key }}"
+      rules:
+        - proto: tcp
+          ports:
+            - 22
+          cidr_ip: 0.0.0.0/0
+          rule_desc: allow all on ssh port
+    register: result_sec_group
+  - name: Provision instance(s)
+    ec2_instance:
+      aws_access_key: "{{ settings.aws.access_key }}"
+      aws_secret_key: "{{ settings.aws.secret_key }}"
+      key_name: "{{ security_key }}"
+      id: "{{ id }}"
+      group_id: "{{ result_sec_group.group_id }}"
+      image: "{{ image }}"
+      instance_type: t2.micro
+      region: "{{ region }}"
+      wait: true
+      count: 1
+      # exact_count: 2
+      # count_tag:
+      #   Name: App
+      # instance_tags:
+      #   Name: App
+  tags: ['never', 'create_ec2']

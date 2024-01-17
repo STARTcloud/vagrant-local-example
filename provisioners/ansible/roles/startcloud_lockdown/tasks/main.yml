@@ -1,0 +1,28 @@
+---
+-
+  name: "Disabling NFS, Exim and Cockpit, reboot to fully apply"
+  service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+  loop: "{{ lockdown }}"
+
+- 
+  name: "Disabling Default Startcloud SSH Key"
+  lineinfile:
+    path: /home/startcloud/.ssh/authorized_keys
+    state: absent
+    regexp: '^%vagrantup'
+
+- 
+  name: Place New SSH Key
+  template:
+    src: id_rsa.pub.j2
+    dest: '/home/startcloud/.ssh/authorized_keys'
+
+- 
+  name: Change startcloud Password
+  user:
+    name: "startcloud"
+    state: present
+    password: "{{ source_pass | password_hash('sha512') }}"

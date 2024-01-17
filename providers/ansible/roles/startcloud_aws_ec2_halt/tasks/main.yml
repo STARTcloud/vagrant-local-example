@@ -1,0 +1,69 @@
+---
+- 
+  name: "Gathering Instance Facts"
+  block:
+    - 
+      name: "Gathering VM State Data"
+      set_fact:
+        vm_state: "{{ lookup('file', '../../{{ settings.server_id }}--{{ settings.hostname }}.{{ settings.domain }}.vmstate') | from_yaml }}"
+    - 
+      name: "Get instance facts"
+      loop: "{{ vm_state }}"
+      amazon.aws.ec2_instance_info:
+        aws_access_key: "{{ settings.aws.access_key }}"
+        aws_secret_key: "{{ settings.aws.secret_key }}"
+        instance_ids:  "{{ ec2_ids | default([]) + [item['ec2_id']] }}"
+        region: "{{ settings.aws.region }}"
+      register: instance_data
+    -
+      name: "Saving Instance State Variables for Subsequent Tasks"
+      ansible.builtin.copy:
+        dest: '../../{{ settings.server_id }}--{{ settings.hostname }}.{{ settings.domain }}.aws.vmstate'
+        content: "{{ instance_data.results | to_nice_yaml }}"
+- 
+  name: "Stopping the EC2 instances"
+  block:
+    - name: "Stopping Instance"
+      loop: "{{ vm_state }}"
+      amazon.aws.ec2_instance:
+        aws_access_key: "{{ settings.aws.access_key }}"
+        aws_secret_key: "{{ settings.aws.secret_key }}"
+        instance_ids:  "{{ ec2_ids | default([]) + [item['ec2_id']] }}"
+        region: "{{ settings.aws.region }}"
+        state: stopped
+        wait: true
+- 
+  name: "Gathering Instance Facts"
+  block:
+    - 
+      name: "Get instance facts"
+      loop: "{{ vm_state }}"
+      amazon.aws.ec2_instance_info:
+        aws_access_key: "{{ settings.aws.access_key }}"
+        aws_secret_key: "{{ settings.aws.secret_key }}"
+        instance_ids:  "{{ ec2_ids | default([]) + [item['ec2_id']] }}"
+        region: "{{ settings.aws.region }}"
+      register: instance_data
+    -
+      name: "Saving Instance State Variables for Subsequent Tasks"
+      ansible.builtin.copy:
+        dest: '../../{{ settings.server_id }}--{{ settings.hostname }}.{{ settings.domain }}.aws.vmstate'
+        content: "{{ instance_data.results | to_nice_yaml }}"
+- 
+  name: "Telling Vagrant that the Machine is Stopped"
+  block:
+    #- 
+    #  name: "Display all variables"
+    #  ansible.builtin.debug:
+    #    var: settings
+    - 
+      name: "Telling Provisioner VM is stopped"
+      loop: "{{ vm_state }}"
+      ansible.builtin.copy:
+        dest: "../../{{ settings.server_id }}--{{ settings.hostname }}.{{ settings.domain }}.vmstate"
+        content: |
+          -
+            name: {{ settings.server_id }}--{{ settings.hostname }}.{{ settings.domain }}
+            ec2_id: {{ vm_state[0]['ec2_id'] }}
+            state: stopped
+            public_ip: 
